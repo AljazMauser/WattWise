@@ -53,7 +53,7 @@ def generate_coach_summary(ride_metrics: dict, time_series: list) -> str:
                 {"role": "system", "content": "You are a world-class cycling coach analyzing power and heart rate data to provide insightful training feedback."},
                 {"role": "user", "content": prompt}
             ],
-            model="llama3-8b-8192",
+            model="llama-3.1-8b-instant",
             temperature=0.7,
             max_tokens=1024,
         )

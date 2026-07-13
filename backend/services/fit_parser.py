@@ -4,6 +4,12 @@ import pandas as pd
 import numpy as np
 from io import BytesIO
 from datetime import datetime
+import math
+
+def clean_float(val):
+    if val is None or pd.isna(val) or math.isnan(float(val)):
+        return None
+    return float(val)
 
 def calculate_advanced_metrics(df: pd.DataFrame, ftp: int = 250):
     np_val = None
@@ -11,24 +17,18 @@ def calculate_advanced_metrics(df: pd.DataFrame, ftp: int = 250):
     tss = None
     
     if 'power' in df.columns and not df['power'].isnull().all():
-        # Ensure data is sorted by time and resampled to 1 second
-        # For simplicity, assume df is already 1-second intervals or we just do rolling window of 30 records
-        
-        # Calculate NP
         rolling_30s = df['power'].rolling(window=30, min_periods=1).mean()
         np_val = (rolling_30s ** 4).mean() ** 0.25
         
-        # Calculate IF
         if_factor = np_val / ftp
         
-        # Calculate TSS
         duration_s = (df['timestamp'].iloc[-1] - df['timestamp'].iloc[0]).total_seconds()
         tss = (duration_s * np_val * if_factor) / (ftp * 3600) * 100
         
     return {
-        "np": float(np_val) if pd.notnull(np_val) else None,
-        "if_factor": float(if_factor) if pd.notnull(if_factor) else None,
-        "tss": float(tss) if pd.notnull(tss) else None
+        "np": clean_float(np_val),
+        "if_factor": clean_float(if_factor),
+        "tss": clean_float(tss)
     }
 
 def process_fit_file(file_bytes: bytes, ftp: int = 250):
@@ -55,9 +55,8 @@ def process_fit_file(file_bytes: bytes, ftp: int = 250):
     if df.empty:
         return None
         
-    # Standard metrics
     duration = (df['timestamp'].max() - df['timestamp'].min()).total_seconds()
-    distance = None # Complex to calculate just from coords without distance field, but usually fit has distance
+    distance = None
     if 'distance' in df.columns:
         distance = df['distance'].max() - df['distance'].min()
     
@@ -67,29 +66,30 @@ def process_fit_file(file_bytes: bytes, ftp: int = 250):
     max_hr = df['hr'].max() if 'hr' in df.columns else None
     avg_power = df['power'].mean() if 'power' in df.columns else None
     
-    # Elevation gain (simplified)
     elevation_gain = None
     if 'alt' in df.columns:
         alt_diffs = df['alt'].diff()
         elevation_gain = alt_diffs[alt_diffs > 0].sum()
         
-    # Advanced metrics
     adv_metrics = calculate_advanced_metrics(df, ftp)
     
-    # Clean df for JSON serialization
-    # Fill NaN with None
+    date_val = df['timestamp'].min()
+    # Convert timestamps to ISO string for JSON serialization
+    df['timestamp'] = df['timestamp'].astype(str)
+    
+    # Replace nan with None
     time_series = df.replace({np.nan: None}).to_dict(orient='records')
     
     return {
-        "date": df['timestamp'].min(),
-        "duration": duration,
-        "distance": distance,
-        "avg_speed": avg_speed,
-        "max_speed": max_speed,
-        "elevation_gain": elevation_gain,
-        "avg_hr": avg_hr,
-        "max_hr": max_hr,
-        "avg_power": avg_power,
+        "date": date_val,
+        "duration": clean_float(duration),
+        "distance": clean_float(distance),
+        "avg_speed": clean_float(avg_speed),
+        "max_speed": clean_float(max_speed),
+        "elevation_gain": clean_float(elevation_gain),
+        "avg_hr": clean_float(avg_hr),
+        "max_hr": clean_float(max_hr),
+        "avg_power": clean_float(avg_power),
         "np": adv_metrics["np"],
         "if_factor": adv_metrics["if_factor"],
         "tss": adv_metrics["tss"],
@@ -103,7 +103,6 @@ def process_gpx_file(file_bytes: bytes, ftp: int = 250):
     for track in gpx.tracks:
         for segment in track.segments:
             for point in segment.points:
-                # GPX extensions can have hr, cad, power
                 hr, cad, power = None, None, None
                 for ext in point.extensions:
                     if 'hr' in ext.tag: hr = int(ext.text)
@@ -124,7 +123,6 @@ def process_gpx_file(file_bytes: bytes, ftp: int = 250):
     if df.empty:
         return None
         
-    # Convert timestamps to timezone naive for consistency
     df['timestamp'] = pd.to_datetime(df['timestamp']).dt.tz_localize(None)
         
     duration = (df['timestamp'].max() - df['timestamp'].min()).total_seconds()
@@ -140,18 +138,20 @@ def process_gpx_file(file_bytes: bytes, ftp: int = 250):
         
     adv_metrics = calculate_advanced_metrics(df, ftp)
     
+    date_val = df['timestamp'].min()
+    df['timestamp'] = df['timestamp'].astype(str)
     time_series = df.replace({np.nan: None}).to_dict(orient='records')
     
     return {
-        "date": df['timestamp'].min(),
-        "duration": duration,
-        "distance": None, # Could calculate using haversine
+        "date": date_val,
+        "duration": clean_float(duration),
+        "distance": None,
         "avg_speed": None,
         "max_speed": None,
-        "elevation_gain": elevation_gain,
-        "avg_hr": avg_hr,
-        "max_hr": max_hr,
-        "avg_power": avg_power,
+        "elevation_gain": clean_float(elevation_gain),
+        "avg_hr": clean_float(avg_hr),
+        "max_hr": clean_float(max_hr),
+        "avg_power": clean_float(avg_power),
         "np": adv_metrics["np"],
         "if_factor": adv_metrics["if_factor"],
         "tss": adv_metrics["tss"],
