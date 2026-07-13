@@ -31,15 +31,15 @@ def generate_coach_summary(ride_metrics: dict, time_series: list) -> str:
     Focus on the power data (NP, IF, TSS) if available, pacing, and heart rate response.
     
     Overall Ride Metrics:
-    - Duration: {ride_metrics.get('duration', 0) / 60:.1f} minutes
-    - Distance: {ride_metrics.get('distance', 0) / 1000 if ride_metrics.get('distance') else 'N/A'} km
-    - Elevation Gain: {ride_metrics.get('elevation_gain', 'N/A')} m
-    - Average Power: {ride_metrics.get('avg_power', 'N/A')} W
-    - Normalized Power (NP): {ride_metrics.get('np', 'N/A')} W
-    - Intensity Factor (IF): {ride_metrics.get('if_factor', 'N/A')}
-    - Training Stress Score (TSS): {ride_metrics.get('tss', 'N/A')}
-    - Average HR: {ride_metrics.get('avg_hr', 'N/A')} bpm
-    - Max HR: {ride_metrics.get('max_hr', 'N/A')} bpm
+    - Duration: {(ride_metrics.get('duration') or 0) / 60:.1f} minutes
+    - Distance: {(ride_metrics.get('distance') or 0) / 1000 if ride_metrics.get('distance') else 'N/A'} km
+    - Elevation Gain: {ride_metrics.get('elevation_gain') or 'N/A'} m
+    - Average Power: {ride_metrics.get('avg_power') or 'N/A'} W
+    - Normalized Power (NP): {ride_metrics.get('np') or 'N/A'} W
+    - Intensity Factor (IF): {ride_metrics.get('if_factor') or 'N/A'}
+    - Training Stress Score (TSS): {ride_metrics.get('tss') or 'N/A'}
+    - Average HR: {ride_metrics.get('avg_hr') or 'N/A'} bpm
+    - Max HR: {ride_metrics.get('max_hr') or 'N/A'} bpm
     
     Interval Breakdown (Summarized into {len(chunked_data)} segments):
     {json.dumps(chunked_data, indent=2)}
