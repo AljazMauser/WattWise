@@ -136,35 +136,50 @@ def process_fit_file(file_bytes: bytes, ftp: int = 250):
         "time_series_data": time_series
     }
 
-def process_gpx_file(file_bytes: bytes, ftp: int = 250):
-    gpx = gpxpy.parse(BytesIO(file_bytes))
-    records = []
+def process_gpx_file(file_content: bytes, ftp: int = 250):
+    import xml.etree.ElementTree as ET
     
-    for track in gpx.tracks:
-        for segment in track.segments:
-            for point in segment.points:
-                hr, cad, power = None, None, None
-                for ext in point.extensions:
-                    for element in ext.iter():
-                        if element.text:
-                            tag_lower = element.tag.lower()
-                            try:
-                                if 'hr' in tag_lower: hr = int(float(element.text))
-                                elif 'cad' in tag_lower: cad = int(float(element.text))
-                                elif 'power' in tag_lower or 'watts' in tag_lower: power = float(element.text)
-                            except ValueError:
-                                pass
+    records = []
+    try:
+        root = ET.fromstring(file_content)
+        
+        for trkpt in root.iter():
+            tag = trkpt.tag.lower()
+            if tag.endswith('trkpt'):
+                lat = float(trkpt.attrib.get('lat', 0))
+                lon = float(trkpt.attrib.get('lon', 0))
+                
+                ele, time_val, hr, cad, power = None, None, None, None, None
+                for child in trkpt.iter():
+                    ctag = child.tag.lower()
+                    if child.text:
+                        try:
+                            if ctag.endswith('ele'):
+                                ele = float(child.text)
+                            elif ctag.endswith('time'):
+                                time_val = pd.to_datetime(child.text)
+                            elif ctag.endswith('hr'):
+                                hr = int(float(child.text))
+                            elif ctag.endswith('cad'):
+                                cad = int(float(child.text))
+                            elif ctag.endswith('power') or ctag.endswith('watts'):
+                                power = float(child.text)
+                        except (ValueError, TypeError):
+                            pass
                 
                 records.append({
-                    'timestamp': point.time,
-                    'lat': point.latitude,
-                    'lon': point.longitude,
-                    'alt': point.elevation,
+                    'timestamp': time_val,
+                    'lat': lat,
+                    'lon': lon,
+                    'alt': ele,
                     'hr': hr,
-                    'cadence': cad,
+                    'cad': cad,
                     'power': power
                 })
-                
+    except Exception as e:
+        print(f"Error parsing GPX: {e}")
+        return None
+        
     df = pd.DataFrame(records)
     if df.empty:
         return None
