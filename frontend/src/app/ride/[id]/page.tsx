@@ -55,8 +55,12 @@ export default function RideDetail({ params }: { params: { id: string } }) {
 
   if (!ride) return null;
 
+  const rawData = typeof ride.time_series_data === 'string' 
+    ? JSON.parse(ride.time_series_data) 
+    : (ride.time_series_data || []);
+
   // Format timeseries for recharts
-  const chartData = (ride.time_series_data || []).map((point: any, idx: number) => ({
+  const chartData = rawData.map((point: any, idx: number) => ({
     time: idx, // simplified
     power: point.power || 0,
     hr: point.hr || 0,
@@ -150,9 +154,9 @@ export default function RideDetail({ params }: { params: { id: string } }) {
         )}
 
         {/* Map Section */}
-        {ride.time_series_data && (
+        {rawData && rawData.length > 0 && (
           <div className="glass-panel p-2 h-[400px] md:h-[500px]">
-            <RouteMap data={ride.time_series_data} />
+            <RouteMap data={rawData} />
           </div>
         )}
 

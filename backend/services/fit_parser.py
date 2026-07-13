@@ -145,9 +145,15 @@ def process_gpx_file(file_bytes: bytes, ftp: int = 250):
             for point in segment.points:
                 hr, cad, power = None, None, None
                 for ext in point.extensions:
-                    if 'hr' in ext.tag: hr = int(ext.text)
-                    if 'cad' in ext.tag: cad = int(ext.text)
-                    if 'power' in ext.tag: power = float(ext.text)
+                    for element in ext.iter():
+                        if element.text:
+                            tag_lower = element.tag.lower()
+                            try:
+                                if 'hr' in tag_lower: hr = int(float(element.text))
+                                elif 'cad' in tag_lower: cad = int(float(element.text))
+                                elif 'power' in tag_lower or 'watts' in tag_lower: power = float(element.text)
+                            except ValueError:
+                                pass
                 
                 records.append({
                     'timestamp': point.time,
