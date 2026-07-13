@@ -194,7 +194,12 @@ def process_gpx_file(file_bytes: bytes, ftp: int = 250):
     adv_metrics = calculate_advanced_metrics(df, ftp)
     
     date_val = df['timestamp'].min()
-    df['timestamp'] = df['timestamp'].astype(str)
+    if pd.isna(date_val):
+        date_val = None
+    else:
+        date_val = date_val.to_pydatetime()
+        
+    df['timestamp'] = df['timestamp'].astype(str).replace({'NaT': None, 'nan': None})
     time_series = df.replace({np.nan: None}).to_dict(orient='records')
     
     return {
