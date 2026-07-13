@@ -62,7 +62,7 @@ export default function RideDetail({ params }: { params: { id: string } }) {
     hr: point.hr || 0,
     elevation: point.alt || 0,
     speed: point.speed ? point.speed * 3.6 : 0 // m/s to km/h
-  })).filter((_, i) => i % 5 === 0); // Decimate for performance if too many points
+  })).filter((_: any, i: number) => i % 5 === 0); // Decimate for performance if too many points
 
   return (
     <div className="min-h-screen flex flex-col pb-20">
