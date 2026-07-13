@@ -113,7 +113,7 @@ def process_fit_file(file_bytes: bytes, ftp: int = 250):
     
     date_val = df['timestamp'].min()
     if pd.isna(date_val):
-        date_val = None
+        date_val = datetime.utcnow()
     else:
         date_val = date_val.to_pydatetime()
         
@@ -195,7 +195,7 @@ def process_gpx_file(file_bytes: bytes, ftp: int = 250):
     
     date_val = df['timestamp'].min()
     if pd.isna(date_val):
-        date_val = None
+        date_val = datetime.utcnow()
     else:
         date_val = date_val.to_pydatetime()
         
